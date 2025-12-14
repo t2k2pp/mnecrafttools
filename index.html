@@ -1,0 +1,474 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>BedrockMate 2025 - マイクラ べんりツール</title>
+    <meta name="description" content="Minecraft Bedrock Edition用のべんりなツール集。座標計算、スライムチャンク、ネザーポータルなど。">
+    
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        'mc-grass': '#5D8F3B',
+                        'mc-grass-dark': '#4A7230',
+                        'mc-dirt': '#8B5A2B',
+                        'mc-diamond': '#5BC0EB',
+                        'mc-gold': '#FFD700',
+                        'mc-redstone': '#FF4444',
+                        'mc-obsidian': '#1a1a2e',
+                        'mc-stone': '#7F7F7F',
+                        'mc-bedrock': '#2D2D2D',
+                    },
+                    fontFamily: {
+                        'minecraft': ['Noto Sans JP', 'sans-serif'],
+                    }
+                }
+            }
+        }
+    </script>
+    
+    <!-- Google Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+JP:wght@400;700&display=swap" rel="stylesheet">
+    
+    <link rel="stylesheet" href="css/style.css">
+</head>
+<body class="bg-mc-obsidian text-white font-minecraft min-h-screen">
+    
+    <!-- ヘッダー -->
+    <header class="bg-mc-bedrock border-b-4 border-mc-grass sticky top-0 z-50">
+        <div class="container mx-auto px-4 py-3 flex items-center justify-between">
+            <div class="flex items-center gap-3">
+                <span class="text-3xl">⛏️</span>
+                <h1 class="text-xl md:text-2xl font-bold">
+                    <ruby>BedrockMate<rp>(</rp><rt>ベッドロックメイト</rt><rp>)</rp></ruby> 2025
+                </h1>
+            </div>
+            
+            <!-- 接続ステータス -->
+            <div id="connection-status" class="flex items-center gap-2 px-3 py-1.5 rounded-full bg-mc-obsidian text-sm">
+                <span class="status-icon">☁️</span>
+                <span class="status-text hidden md:inline">
+                    <ruby>静的<rp>(</rp><rt>せいてき</rt><rp>)</rp></ruby>モード
+                </span>
+            </div>
+        </div>
+    </header>
+
+    <div class="flex flex-col md:flex-row">
+        
+        <!-- サイドナビ -->
+        <nav class="w-full md:w-64 bg-mc-bedrock md:min-h-screen p-4 md:sticky md:top-16 md:h-[calc(100vh-64px)] overflow-y-auto">
+            <div class="mb-4">
+                <h2 class="text-mc-gold font-bold mb-2 flex items-center gap-2">
+                    🛠️ <span>どこでもツール</span>
+                </h2>
+                <p class="text-xs text-gray-400 mb-3">Basic - いつでも<ruby>使<rp>(</rp><rt>つか</rt><rp>)</rp></ruby>えるよ！</p>
+                
+                <ul class="space-y-1" id="tool-menu">
+                    <li>
+                        <button class="tool-btn active w-full text-left px-3 py-2 rounded-lg hover:bg-mc-grass-dark transition flex items-center gap-2" data-tool="coordinate">
+                            📍 <ruby>座標<rp>(</rp><rt>ざひょう</rt><rp>)</rp></ruby>けいさん
+                        </button>
+                    </li>
+                    <li>
+                        <button class="tool-btn w-full text-left px-3 py-2 rounded-lg hover:bg-mc-grass-dark transition flex items-center gap-2" data-tool="portal">
+                            🌀 ネザーポータル
+                        </button>
+                    </li>
+                    <li>
+                        <button class="tool-btn w-full text-left px-3 py-2 rounded-lg hover:bg-mc-grass-dark transition flex items-center gap-2" data-tool="slime">
+                            🟢 スライムレーダー
+                        </button>
+                    </li>
+                    <li>
+                        <button class="tool-btn w-full text-left px-3 py-2 rounded-lg hover:bg-mc-grass-dark transition flex items-center gap-2" data-tool="distance">
+                            📏 <ruby>距離<rp>(</rp><rt>きょり</rt><rp>)</rp></ruby>けいさん
+                        </button>
+                    </li>
+                    <li>
+                        <button class="tool-btn w-full text-left px-3 py-2 rounded-lg hover:bg-mc-grass-dark transition flex items-center gap-2" data-tool="shapes">
+                            ⭕ けんちくヘルパー
+                        </button>
+                    </li>
+                </ul>
+            </div>
+            
+            <!-- サーバー機能（無効状態） -->
+            <div class="opacity-50 mb-4" id="server-features">
+                <h2 class="text-mc-diamond font-bold mb-2 flex items-center gap-2">
+                    💾 データ<ruby>管理<rp>(</rp><rt>かんり</rt><rp>)</rp></ruby>
+                </h2>
+                <p class="text-xs text-gray-400 mb-3">Home Server - <ruby>自宅<rp>(</rp><rt>じたく</rt><rp>)</rp></ruby>サーバー<ruby>接続時<rp>(</rp><rt>せつぞくじ</rt><rp>)</rp></ruby>のみ</p>
+                <ul class="space-y-1">
+                    <li class="px-3 py-2 text-gray-500 flex items-center gap-2">
+                        🔐 シードばんごう
+                    </li>
+                    <li class="px-3 py-2 text-gray-500 flex items-center gap-2">
+                        📌 ブックマーク
+                    </li>
+                </ul>
+            </div>
+            
+            <!-- ふりがな切替 -->
+            <div class="mt-6 pt-4 border-t border-mc-stone">
+                <label class="flex items-center gap-2 cursor-pointer text-sm">
+                    <input type="checkbox" id="furigana-toggle" class="w-4 h-4 accent-mc-grass" checked>
+                    <span>ふりがな<ruby>表示<rp>(</rp><rt>ひょうじ</rt><rp>)</rp></ruby></span>
+                </label>
+            </div>
+        </nav>
+
+        <!-- メインコンテンツ -->
+        <main class="flex-1 p-4 md:p-6">
+            
+            <!-- 座標計算ツール -->
+            <section id="tool-coordinate" class="tool-content">
+                <div class="bg-mc-bedrock rounded-xl p-6 border-2 border-mc-grass">
+                    <h2 class="text-2xl font-bold mb-4 flex items-center gap-3">
+                        📍 <ruby>座標<rp>(</rp><rt>ざひょう</rt><rp>)</rp></ruby>けいさんツール
+                    </h2>
+                    <p class="text-gray-300 mb-6">
+                        <ruby>座標<rp>(</rp><rt>ざひょう</rt><rp>)</rp></ruby>をいれると、チャンクやリージョン、ネザーの<ruby>座標<rp>(</rp><rt>ざひょう</rt><rp>)</rp></ruby>がわかるよ！
+                    </p>
+                    
+                    <div class="grid md:grid-cols-3 gap-4 mb-6">
+                        <div>
+                            <label class="block text-sm mb-1 text-mc-gold">X <ruby>座標<rp>(</rp><rt>ざひょう</rt><rp>)</rp></ruby></label>
+                            <input type="number" id="coord-x" pattern="\d*" 
+                                   class="w-full px-4 py-3 bg-mc-obsidian border-2 border-mc-stone rounded-lg focus:border-mc-diamond focus:outline-none text-xl"
+                                   placeholder="0">
+                        </div>
+                        <div>
+                            <label class="block text-sm mb-1 text-mc-gold">Y <ruby>座標<rp>(</rp><rt>ざひょう</rt><rp>)</rp></ruby>（<ruby>高<rp>(</rp><rt>たか</rt><rp>)</rp></ruby>さ）</label>
+                            <input type="number" id="coord-y" pattern="\d*"
+                                   class="w-full px-4 py-3 bg-mc-obsidian border-2 border-mc-stone rounded-lg focus:border-mc-diamond focus:outline-none text-xl"
+                                   placeholder="64">
+                        </div>
+                        <div>
+                            <label class="block text-sm mb-1 text-mc-gold">Z <ruby>座標<rp>(</rp><rt>ざひょう</rt><rp>)</rp></ruby></label>
+                            <input type="number" id="coord-z" pattern="\d*"
+                                   class="w-full px-4 py-3 bg-mc-obsidian border-2 border-mc-stone rounded-lg focus:border-mc-diamond focus:outline-none text-xl"
+                                   placeholder="0">
+                        </div>
+                    </div>
+                    
+                    <button id="coord-calc-btn" class="w-full md:w-auto px-8 py-3 bg-mc-grass hover:bg-mc-grass-dark rounded-lg font-bold text-lg transition transform hover:scale-105">
+                        けいさんする！ ✨
+                    </button>
+                    
+                    <!-- 結果表示 -->
+                    <div id="coord-results" class="mt-6 grid md:grid-cols-2 gap-4 hidden">
+                        <div class="bg-mc-obsidian p-4 rounded-lg border border-mc-stone">
+                            <h3 class="text-mc-diamond font-bold mb-2">📦 チャンク</h3>
+                            <p class="text-2xl font-bold" id="result-chunk">-</p>
+                            <p class="text-sm text-gray-400 mt-1">チャンク<ruby>内<rp>(</rp><rt>ない</rt><rp>)</rp></ruby>: <span id="result-chunk-local">-</span></p>
+                        </div>
+                        <div class="bg-mc-obsidian p-4 rounded-lg border border-mc-stone">
+                            <h3 class="text-mc-diamond font-bold mb-2">🗂️ リージョン</h3>
+                            <p class="text-2xl font-bold" id="result-region">-</p>
+                            <p class="text-sm text-gray-400 mt-1">ファイル: <span id="result-region-file">-</span></p>
+                        </div>
+                        <div class="bg-mc-obsidian p-4 rounded-lg border border-mc-redstone">
+                            <h3 class="text-mc-redstone font-bold mb-2">🔥 ネザー<ruby>座標<rp>(</rp><rt>ざひょう</rt><rp>)</rp></ruby></h3>
+                            <p class="text-2xl font-bold" id="result-nether">-</p>
+                            <p class="text-sm text-gray-400 mt-1">オーバーワールド ÷ 8</p>
+                        </div>
+                        <div class="bg-mc-obsidian p-4 rounded-lg border border-mc-grass">
+                            <h3 class="text-mc-grass font-bold mb-2">🌍 オーバーワールド</h3>
+                            <p class="text-2xl font-bold" id="result-overworld">-</p>
+                            <p class="text-sm text-gray-400 mt-1">ネザー × 8</p>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <!-- ネザーポータルツール -->
+            <section id="tool-portal" class="tool-content hidden">
+                <div class="bg-mc-bedrock rounded-xl p-6 border-2 border-purple-600">
+                    <h2 class="text-2xl font-bold mb-4 flex items-center gap-3">
+                        🌀 ネザーポータルプランナー
+                    </h2>
+                    <p class="text-gray-300 mb-6">
+                        ポータルが<ruby>混線<rp>(</rp><rt>こんせん</rt><rp>)</rp></ruby>しないように、<ruby>安全<rp>(</rp><rt>あんぜん</rt><rp>)</rp></ruby>な<ruby>場所<rp>(</rp><rt>ばしょ</rt><rp>)</rp></ruby>をさがそう！
+                    </p>
+                    
+                    <div class="grid md:grid-cols-2 gap-4 mb-6">
+                        <div>
+                            <label class="block text-sm mb-1 text-mc-gold">オーバーワールド X</label>
+                            <input type="number" id="portal-ow-x" pattern="\d*"
+                                   class="w-full px-4 py-3 bg-mc-obsidian border-2 border-mc-stone rounded-lg focus:border-purple-500 focus:outline-none text-xl"
+                                   placeholder="0">
+                        </div>
+                        <div>
+                            <label class="block text-sm mb-1 text-mc-gold">オーバーワールド Z</label>
+                            <input type="number" id="portal-ow-z" pattern="\d*"
+                                   class="w-full px-4 py-3 bg-mc-obsidian border-2 border-mc-stone rounded-lg focus:border-purple-500 focus:outline-none text-xl"
+                                   placeholder="0">
+                        </div>
+                    </div>
+                    
+                    <button id="portal-calc-btn" class="w-full md:w-auto px-8 py-3 bg-purple-600 hover:bg-purple-700 rounded-lg font-bold text-lg transition transform hover:scale-105">
+                        ポータルをけいかくする！ 🌀
+                    </button>
+                    
+                    <div id="portal-results" class="mt-6 hidden">
+                        <div class="bg-mc-obsidian p-5 rounded-lg border-2 border-purple-500">
+                            <h3 class="text-xl font-bold text-purple-400 mb-4">🎯 ネザー<ruby>側<rp>(</rp><rt>がわ</rt><rp>)</rp></ruby>のさいてき<ruby>座標<rp>(</rp><rt>ざひょう</rt><rp>)</rp></ruby></h3>
+                            <p class="text-3xl font-bold mb-4" id="portal-nether-coords">-</p>
+                            
+                            <div class="bg-yellow-900/30 border border-yellow-600 rounded-lg p-4 mt-4">
+                                <h4 class="font-bold text-yellow-400 flex items-center gap-2 mb-2">
+                                    ⚠️ <ruby>注意<rp>(</rp><rt>ちゅうい</rt><rp>)</rp></ruby>！
+                                </h4>
+                                <p class="text-sm">
+                                    この<ruby>座標<rp>(</rp><rt>ざひょう</rt><rp>)</rp></ruby>から<strong class="text-yellow-300">128ブロック<ruby>以内<rp>(</rp><rt>いない</rt><rp>)</rp></ruby></strong>に<ruby>別<rp>(</rp><rt>べつ</rt><rp>)</rp></ruby>のポータルがあると、<ruby>混線<rp>(</rp><rt>こんせん</rt><rp>)</rp></ruby>するかも！
+                                </p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <!-- スライムレーダー -->
+            <section id="tool-slime" class="tool-content hidden">
+                <div class="bg-mc-bedrock rounded-xl p-6 border-2 border-green-500">
+                    <h2 class="text-2xl font-bold mb-4 flex items-center gap-3">
+                        🟢 スライムチャンクレーダー
+                    </h2>
+                    <p class="text-gray-300 mb-2">
+                        <ruby>現在地<rp>(</rp><rt>げんざいち</rt><rp>)</rp></ruby>のまわりにあるスライムチャンクをさがすよ！
+                    </p>
+                    <p class="text-sm text-green-400 mb-6 flex items-center gap-2">
+                        ✨ Bedrock<ruby>版<rp>(</rp><rt>ばん</rt><rp>)</rp></ruby>はシードいらず！ぜんぶのワールドで<ruby>同<rp>(</rp><rt>おな</rt><rp>)</rp></ruby>じだよ
+                    </p>
+                    
+                    <div class="grid md:grid-cols-2 gap-4 mb-6">
+                        <div>
+                            <label class="block text-sm mb-1 text-mc-gold"><ruby>現在地<rp>(</rp><rt>げんざいち</rt><rp>)</rp></ruby> X</label>
+                            <input type="number" id="slime-x" pattern="\d*"
+                                   class="w-full px-4 py-3 bg-mc-obsidian border-2 border-mc-stone rounded-lg focus:border-green-500 focus:outline-none text-xl"
+                                   placeholder="0">
+                        </div>
+                        <div>
+                            <label class="block text-sm mb-1 text-mc-gold"><ruby>現在地<rp>(</rp><rt>げんざいち</rt><rp>)</rp></ruby> Z</label>
+                            <input type="number" id="slime-z" pattern="\d*"
+                                   class="w-full px-4 py-3 bg-mc-obsidian border-2 border-mc-stone rounded-lg focus:border-green-500 focus:outline-none text-xl"
+                                   placeholder="0">
+                        </div>
+                    </div>
+                    
+                    <button id="slime-calc-btn" class="w-full md:w-auto px-8 py-3 bg-green-600 hover:bg-green-700 rounded-lg font-bold text-lg transition transform hover:scale-105">
+                        スライムをさがす！ 🟢
+                    </button>
+                    
+                    <div id="slime-results" class="mt-6 hidden">
+                        <div class="bg-mc-obsidian p-4 rounded-lg mb-4">
+                            <p class="text-sm text-gray-400 mb-2">
+                                🟢 = スライムチャンク（Y=40<ruby>以下<rp>(</rp><rt>いか</rt><rp>)</rp></ruby>でスポーン）
+                            </p>
+                            <p class="text-sm text-gray-400">
+                                ⬜ = ふつうのチャンク
+                            </p>
+                        </div>
+                        <div id="slime-grid" class="overflow-x-auto">
+                            <!-- グリッドがここに生成される -->
+                        </div>
+                        <div id="slime-list" class="mt-4 bg-mc-obsidian p-4 rounded-lg">
+                            <h4 class="font-bold text-green-400 mb-2">📍 <ruby>近<rp>(</rp><rt>ちか</rt><rp>)</rp></ruby>くのスライムチャンク</h4>
+                            <ul id="slime-chunk-list" class="text-sm space-y-1">
+                                <!-- リストがここに生成される -->
+                            </ul>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <!-- 距離計算ツール -->
+            <section id="tool-distance" class="tool-content hidden">
+                <div class="bg-mc-bedrock rounded-xl p-6 border-2 border-mc-diamond">
+                    <h2 class="text-2xl font-bold mb-4 flex items-center gap-3">
+                        📏 <ruby>距離<rp>(</rp><rt>きょり</rt><rp>)</rp></ruby>けいさんツール
+                    </h2>
+                    <p class="text-gray-300 mb-6">
+                        2つの<ruby>場所<rp>(</rp><rt>ばしょ</rt><rp>)</rp></ruby>のあいだの<ruby>距離<rp>(</rp><rt>きょり</rt><rp>)</rp></ruby>と、エリトラでの<ruby>時間<rp>(</rp><rt>じかん</rt><rp>)</rp></ruby>がわかるよ！
+                    </p>
+                    
+                    <div class="grid md:grid-cols-2 gap-6 mb-6">
+                        <!-- 現在地 -->
+                        <div class="bg-mc-obsidian p-4 rounded-lg">
+                            <h3 class="font-bold text-mc-gold mb-3">📍 <ruby>現在地<rp>(</rp><rt>げんざいち</rt><rp>)</rp></ruby>（いまいるところ）</h3>
+                            <div class="grid grid-cols-3 gap-2">
+                                <div>
+                                    <label class="block text-xs mb-1">X</label>
+                                    <input type="number" id="dist-from-x" pattern="\d*"
+                                           class="w-full px-3 py-2 bg-mc-bedrock border border-mc-stone rounded focus:border-mc-diamond focus:outline-none"
+                                           placeholder="0">
+                                </div>
+                                <div>
+                                    <label class="block text-xs mb-1">Y</label>
+                                    <input type="number" id="dist-from-y" pattern="\d*"
+                                           class="w-full px-3 py-2 bg-mc-bedrock border border-mc-stone rounded focus:border-mc-diamond focus:outline-none"
+                                           placeholder="64">
+                                </div>
+                                <div>
+                                    <label class="block text-xs mb-1">Z</label>
+                                    <input type="number" id="dist-from-z" pattern="\d*"
+                                           class="w-full px-3 py-2 bg-mc-bedrock border border-mc-stone rounded focus:border-mc-diamond focus:outline-none"
+                                           placeholder="0">
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <!-- 目標地 -->
+                        <div class="bg-mc-obsidian p-4 rounded-lg">
+                            <h3 class="font-bold text-mc-gold mb-3">🎯 <ruby>目標<rp>(</rp><rt>もくひょう</rt><rp>)</rp></ruby>（いきたいところ）</h3>
+                            <div class="grid grid-cols-3 gap-2">
+                                <div>
+                                    <label class="block text-xs mb-1">X</label>
+                                    <input type="number" id="dist-to-x" pattern="\d*"
+                                           class="w-full px-3 py-2 bg-mc-bedrock border border-mc-stone rounded focus:border-mc-diamond focus:outline-none"
+                                           placeholder="1000">
+                                </div>
+                                <div>
+                                    <label class="block text-xs mb-1">Y</label>
+                                    <input type="number" id="dist-to-y" pattern="\d*"
+                                           class="w-full px-3 py-2 bg-mc-bedrock border border-mc-stone rounded focus:border-mc-diamond focus:outline-none"
+                                           placeholder="64">
+                                </div>
+                                <div>
+                                    <label class="block text-xs mb-1">Z</label>
+                                    <input type="number" id="dist-to-z" pattern="\d*"
+                                           class="w-full px-3 py-2 bg-mc-bedrock border border-mc-stone rounded focus:border-mc-diamond focus:outline-none"
+                                           placeholder="1000">
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <button id="dist-calc-btn" class="w-full md:w-auto px-8 py-3 bg-mc-diamond hover:bg-blue-500 rounded-lg font-bold text-lg text-mc-obsidian transition transform hover:scale-105">
+                        <ruby>距離<rp>(</rp><rt>きょり</rt><rp>)</rp></ruby>をけいさん！ 📏
+                    </button>
+                    
+                    <div id="dist-results" class="mt-6 grid md:grid-cols-3 gap-4 hidden">
+                        <div class="bg-mc-obsidian p-4 rounded-lg border border-mc-diamond text-center">
+                            <h3 class="text-mc-diamond font-bold mb-2">📏 <ruby>直線距離<rp>(</rp><rt>ちょくせんきょり</rt><rp>)</rp></ruby></h3>
+                            <p class="text-3xl font-bold" id="result-distance">-</p>
+                            <p class="text-sm text-gray-400">ブロック</p>
+                        </div>
+                        <div class="bg-mc-obsidian p-4 rounded-lg border border-mc-gold text-center">
+                            <h3 class="text-mc-gold font-bold mb-2">🚶 あるいて</h3>
+                            <p class="text-3xl font-bold" id="result-walk">-</p>
+                            <p class="text-sm text-gray-400">やく4.3m/s</p>
+                        </div>
+                        <div class="bg-mc-obsidian p-4 rounded-lg border border-purple-500 text-center">
+                            <h3 class="text-purple-400 font-bold mb-2">🪂 エリトラ</h3>
+                            <p class="text-3xl font-bold" id="result-elytra">-</p>
+                            <p class="text-sm text-gray-400">ロケット<ruby>使用<rp>(</rp><rt>しよう</rt><rp>)</rp></ruby></p>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <!-- 建築ヘルパー -->
+            <section id="tool-shapes" class="tool-content hidden">
+                <div class="bg-mc-bedrock rounded-xl p-6 border-2 border-mc-gold">
+                    <h2 class="text-2xl font-bold mb-4 flex items-center gap-3">
+                        ⭕ けんちくヘルパー
+                    </h2>
+                    <p class="text-gray-300 mb-6">
+                        まる・たまをきれいにつくるためのブロック<ruby>配置<rp>(</rp><rt>はいち</rt><rp>)</rp></ruby><ruby>図<rp>(</rp><rt>ず</rt><rp>)</rp></ruby>！
+                    </p>
+                    
+                    <div class="flex flex-wrap gap-2 mb-6">
+                        <button class="shape-type-btn active px-4 py-2 bg-mc-grass rounded-lg" data-shape="circle">
+                            ⭕ <ruby>円<rp>(</rp><rt>えん</rt><rp>)</rp></ruby>（まる）
+                        </button>
+                        <button class="shape-type-btn px-4 py-2 bg-mc-stone rounded-lg" data-shape="sphere">
+                            🔵 <ruby>球<rp>(</rp><rt>きゅう</rt><rp>)</rp></ruby>（たま）
+                        </button>
+                        <button class="shape-type-btn px-4 py-2 bg-mc-stone rounded-lg" data-shape="ellipse">
+                            🥚 <ruby>楕円<rp>(</rp><rt>だえん</rt><rp>)</rp></ruby>（たまご）
+                        </button>
+                    </div>
+                    
+                    <div id="shape-circle-inputs" class="shape-inputs mb-6">
+                        <label class="block text-sm mb-1 text-mc-gold"><ruby>半径<rp>(</rp><rt>はんけい</rt><rp>)</rp></ruby>（はんぶんのおおきさ）</label>
+                        <input type="number" id="circle-radius" min="1" max="50" value="5"
+                               class="w-32 px-4 py-3 bg-mc-obsidian border-2 border-mc-stone rounded-lg focus:border-mc-gold focus:outline-none text-xl">
+                        <span class="ml-2 text-gray-400">ブロック</span>
+                    </div>
+                    
+                    <div id="shape-sphere-inputs" class="shape-inputs mb-6 hidden">
+                        <label class="block text-sm mb-1 text-mc-gold"><ruby>半径<rp>(</rp><rt>はんけい</rt><rp>)</rp></ruby></label>
+                        <input type="number" id="sphere-radius" min="1" max="30" value="5"
+                               class="w-32 px-4 py-3 bg-mc-obsidian border-2 border-mc-stone rounded-lg focus:border-mc-gold focus:outline-none text-xl">
+                        <span class="ml-2 text-gray-400">ブロック</span>
+                    </div>
+                    
+                    <div id="shape-ellipse-inputs" class="shape-inputs mb-6 hidden">
+                        <div class="grid grid-cols-2 gap-4">
+                            <div>
+                                <label class="block text-sm mb-1 text-mc-gold">よこ<ruby>半径<rp>(</rp><rt>はんけい</rt><rp>)</rp></ruby></label>
+                                <input type="number" id="ellipse-rx" min="1" max="50" value="7"
+                                       class="w-full px-4 py-3 bg-mc-obsidian border-2 border-mc-stone rounded-lg focus:border-mc-gold focus:outline-none text-xl">
+                            </div>
+                            <div>
+                                <label class="block text-sm mb-1 text-mc-gold">たて<ruby>半径<rp>(</rp><rt>はんけい</rt><rp>)</rp></ruby></label>
+                                <input type="number" id="ellipse-ry" min="1" max="50" value="4"
+                                       class="w-full px-4 py-3 bg-mc-obsidian border-2 border-mc-stone rounded-lg focus:border-mc-gold focus:outline-none text-xl">
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <button id="shape-generate-btn" class="w-full md:w-auto px-8 py-3 bg-mc-gold hover:bg-yellow-500 rounded-lg font-bold text-lg text-mc-obsidian transition transform hover:scale-105">
+                        <ruby>図<rp>(</rp><rt>ず</rt><rp>)</rp></ruby>をつくる！ ⭕
+                    </button>
+                    
+                    <div id="shape-results" class="mt-6 hidden">
+                        <div class="bg-mc-obsidian p-4 rounded-lg mb-4">
+                            <p class="text-sm text-gray-400">
+                                🟫 = ブロックを<ruby>置<rp>(</rp><rt>お</rt><rp>)</rp></ruby>くところ ｜ <ruby>合計<rp>(</rp><rt>ごうけい</rt><rp>)</rp></ruby>: <span id="block-count" class="text-mc-gold font-bold">0</span> ブロック
+                            </p>
+                        </div>
+                        <div id="shape-grid" class="overflow-x-auto bg-mc-obsidian p-4 rounded-lg">
+                            <!-- グリッドがここに生成される -->
+                        </div>
+                        <div id="sphere-layers" class="mt-4 hidden">
+                            <h4 class="font-bold text-mc-gold mb-2">📚 レイヤーべつ<ruby>表示<rp>(</rp><rt>ひょうじ</rt><rp>)</rp></ruby></h4>
+                            <div class="flex items-center gap-4 mb-2">
+                                <button id="layer-prev" class="px-3 py-1 bg-mc-stone rounded">◀</button>
+                                <span>レイヤー <span id="current-layer">0</span></span>
+                                <button id="layer-next" class="px-3 py-1 bg-mc-stone rounded">▶</button>
+                            </div>
+                            <div id="sphere-layer-grid" class="overflow-x-auto bg-mc-obsidian p-4 rounded-lg">
+                                <!-- 球体レイヤーがここに生成される -->
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+        </main>
+    </div>
+
+    <!-- フッター -->
+    <footer class="bg-mc-bedrock border-t border-mc-stone py-4 text-center text-sm text-gray-500">
+        <p>BedrockMate 2025 - Minecraft Bedrock Edition 1.22+ <ruby>対応<rp>(</rp><rt>たいおう</rt><rp>)</rp></ruby></p>
+        <p class="mt-1">Made with ⛏️ for Minecraft <ruby>冒険者<rp>(</rp><rt>ぼうけんしゃ</rt><rp>)</rp></ruby>たち</p>
+    </footer>
+
+    <!-- JavaScript -->
+    <script src="js/tools/coordinate-calculator.js"></script>
+    <script src="js/tools/nether-portal.js"></script>
+    <script src="js/tools/slime-radar.js"></script>
+    <script src="js/tools/distance-calculator.js"></script>
+    <script src="js/tools/building-shapes.js"></script>
+    <script src="js/app.js"></script>
+</body>
+</html>
