@@ -58,10 +58,18 @@ JOB_TYPES = {
 
 # ==================== Background Tasks ====================
 
+import subprocess
+import os
+from pathlib import Path
+
+# Rust CLI パス
+RUST_CLI_PATH = Path(__file__).parent.parent.parent / "rust-cli" / "target" / "release" / "bedrockmate.exe"
+
+
 def process_job(job_id: int):
     """
     バックグラウンドでジョブを処理
-    実際の計算はRust CLIを呼び出すか、Pythonで実装
+    Rust CLIを呼び出して計算を実行
     """
     job = db.get_job(job_id)
     if not job:
@@ -80,16 +88,97 @@ def process_job(job_id: int):
         job_type = job['job_type']
         params = json.loads(job['parameters']) if job['parameters'] else {}
         
-        # TODO: 実際の計算ロジックを実装
-        # Phase 3でRust CLIを統合する際にここを更新
+        result = None
         
-        # プレースホルダー結果
-        result = {
-            "message": f"Job {job_type} completed",
-            "seed": seed,
-            "parameters": params,
-            "note": "Phase 3でRust CLIに置き換え予定"
-        }
+        if job_type == "structures":
+            # 構造物検索
+            center_x = params.get("center_x", 0)
+            center_z = params.get("center_z", 0)
+            radius = params.get("radius", 5000)
+            structure_type = params.get("structure_type", "all")
+            
+            cmd = [
+                str(RUST_CLI_PATH),
+                "structures",
+                "--seed", str(seed),
+                "-x", str(center_x),
+                "-z", str(center_z),
+                "--radius", str(radius),
+                "-t", structure_type,
+                "--output", "json"
+            ]
+            
+            db.update_job_status(job_id, "running", progress=50)
+            
+            proc = subprocess.run(cmd, capture_output=True, text=True, timeout=300)
+            if proc.returncode == 0:
+                result = json.loads(proc.stdout)
+            else:
+                raise Exception(f"CLI error: {proc.stderr}")
+                
+        elif job_type == "biome":
+            # バイオーム検索
+            center_x = params.get("center_x", 0)
+            center_z = params.get("center_z", 0)
+            radius = params.get("radius", 10000)
+            target_biome = params.get("target", "jungle")
+            
+            cmd = [
+                str(RUST_CLI_PATH),
+                "biome",
+                "--seed", str(seed),
+                "-x", str(center_x),
+                "-z", str(center_z),
+                "--radius", str(radius),
+                "-t", target_biome,
+                "--output", "json"
+            ]
+            
+            db.update_job_status(job_id, "running", progress=50)
+            
+            proc = subprocess.run(cmd, capture_output=True, text=True, timeout=300)
+            if proc.returncode == 0:
+                result = json.loads(proc.stdout)
+            else:
+                raise Exception(f"CLI error: {proc.stderr}")
+                
+        elif job_type == "slime_map":
+            # スライムマップ（Tier 1でも可能だが広域版）
+            # Bedrock版はシード不要なので、範囲だけで計算
+            center_x = params.get("center_x", 0)
+            center_z = params.get("center_z", 0)
+            radius = params.get("radius", 1000)
+            
+            # スライムチャンクはJSで計算可能なので、ここでは簡易実装
+            slime_chunks = []
+            chunk_cx = center_x // 16
+            chunk_cz = center_z // 16
+            chunk_radius = radius // 16
+            
+            for dx in range(-chunk_radius, chunk_radius + 1):
+                for dz in range(-chunk_radius, chunk_radius + 1):
+                    cx = chunk_cx + dx
+                    cz = chunk_cz + dz
+                    # Bedrock slime chunk algorithm (seed independent)
+                    v = (
+                        (cx * cx * 4987142)
+                        + (cx * 5947611)
+                        + (cz * cz * 4392871)
+                        + (cz * 389711)
+                    ) & 0xFFFFFFFF
+                    v = ((v >> 17) ^ v) & 0xFFFFFFFF
+                    is_slime = (v % 10) == 0
+                    if is_slime:
+                        slime_chunks.append({"x": cx * 16 + 8, "z": cz * 16 + 8})
+            
+            result = {
+                "center_x": center_x,
+                "center_z": center_z,
+                "radius": radius,
+                "slime_chunks": slime_chunks[:100]  # 最大100件
+            }
+        else:
+            raise Exception(f"Unknown job type: {job_type}")
         
         db.update_job_status(
             job_id, 
