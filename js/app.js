@@ -7,6 +7,9 @@ const App = {
     // サーバー接続状態
     isServerConnected: false,
 
+    // アクティブなワールドID
+    activeWorldId: null,
+
     // ヘルスチェック間隔（ミリ秒）
     HEALTH_CHECK_INTERVAL: 30000,
 
@@ -17,6 +20,7 @@ const App = {
         this.initToolSwitching();
         this.initFuriganaToggle();
         this.initConnectionStatus();
+        this.initBookmarkForm();
 
         console.log('🎮 BedrockMate 2025 initialized!');
     },
@@ -30,6 +34,9 @@ const App = {
 
         toolBtns.forEach(btn => {
             btn.addEventListener('click', () => {
+                // disabled状態のボタンは無視
+                if (btn.disabled) return;
+
                 const toolId = btn.dataset.tool;
 
                 // すべてのボタンを非アクティブに
@@ -47,6 +54,11 @@ const App = {
                 const targetContent = document.getElementById(`tool-${toolId}`);
                 if (targetContent) {
                     targetContent.classList.remove('hidden');
+                }
+
+                // ブックマークツールの場合、アクティブワールドを読み込む
+                if (toolId === 'bookmarks' && this.isServerConnected) {
+                    this.loadActiveWorldForBookmarks();
                 }
             });
         });
@@ -106,12 +118,18 @@ const App = {
         const statusIcon = statusContainer.querySelector('.status-icon');
         const statusText = statusContainer.querySelector('.status-text');
         const serverFeatures = document.getElementById('server-features');
+        const serverButtons = document.querySelectorAll('.tool-btn.server-only');
 
         try {
+            const controller = new AbortController();
+            const timeoutId = setTimeout(() => controller.abort(), 5000);
+
             const response = await fetch('/api/health', {
                 method: 'GET',
-                timeout: 5000
+                signal: controller.signal
             });
+
+            clearTimeout(timeoutId);
 
             if (response.ok) {
                 this.isServerConnected = true;
@@ -121,7 +139,11 @@ const App = {
                 serverFeatures.classList.remove('opacity-50');
 
                 // サーバー機能のボタンを有効化
-                this.enableServerFeatures(true);
+                serverButtons.forEach(btn => {
+                    btn.disabled = false;
+                });
+
+                console.log('✅ Server connected');
             } else {
                 throw new Error('Server not available');
             }
@@ -133,29 +155,101 @@ const App = {
             serverFeatures.classList.add('opacity-50');
 
             // サーバー機能のボタンを無効化
-            this.enableServerFeatures(false);
+            serverButtons.forEach(btn => {
+                btn.disabled = true;
+            });
+
+            console.log('☁️ Static mode (server not available)');
         }
     },
 
     /**
-     * サーバー機能の有効/無効を切り替え
-     * @param {boolean} enabled - 有効かどうか
+     * ブックマークフォームの初期化
      */
-    enableServerFeatures(enabled) {
-        const serverFeatures = document.getElementById('server-features');
+    initBookmarkForm() {
+        const form = document.getElementById('bookmark-form');
+        if (!form) return;
 
-        if (!serverFeatures) return;
+        form.addEventListener('submit', async (e) => {
+            e.preventDefault();
 
-        const buttons = serverFeatures.querySelectorAll('li');
-        buttons.forEach(btn => {
-            if (enabled) {
-                btn.classList.remove('text-gray-500');
-                btn.classList.add('cursor-pointer', 'hover:bg-mc-grass-dark');
-            } else {
-                btn.classList.add('text-gray-500');
-                btn.classList.remove('cursor-pointer', 'hover:bg-mc-grass-dark');
+            if (!this.activeWorldId) {
+                this.showNotification('ワールドをえらんでください', 'error');
+                return;
+            }
+
+            const formData = new FormData(form);
+            const data = {
+                world_id: this.activeWorldId,
+                name: formData.get('name'),
+                x: parseInt(formData.get('x')),
+                y: parseInt(formData.get('y')) || 64,
+                z: parseInt(formData.get('z')),
+                dimension: formData.get('dimension'),
+                icon: formData.get('icon')
+            };
+
+            try {
+                const response = await fetch('/api/bookmarks', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(data)
+                });
+
+                if (response.ok) {
+                    form.reset();
+                    this.loadBookmarks();
+                    this.showNotification('ブックマークをついかしました！', 'success');
+                } else {
+                    throw new Error('Failed to create bookmark');
+                }
+            } catch (error) {
+                console.error('Bookmark creation error:', error);
+                this.showNotification('エラーがおきました', 'error');
             }
         });
+    },
+
+    /**
+     * アクティブワールドをブックマーク用に読み込み
+     */
+    async loadActiveWorldForBookmarks() {
+        try {
+            const response = await fetch('/api/seeds/active');
+            if (response.ok) {
+                const world = await response.json();
+                if (world) {
+                    this.activeWorldId = world.id;
+                    document.getElementById('active-world-name').textContent = world.name;
+                    this.loadBookmarks();
+                } else {
+                    document.getElementById('active-world-name').textContent = 'なし（シードをえらんでね）';
+                    document.getElementById('bookmark-list').innerHTML =
+                        '<p class="text-yellow-400 text-center py-4">⚠️ シードばんごうでワールドをえらんでね</p>';
+                }
+            }
+        } catch (error) {
+            console.error('Failed to load active world:', error);
+        }
+    },
+
+    /**
+     * ブックマークを読み込み
+     */
+    async loadBookmarks() {
+        if (!this.activeWorldId) return;
+
+        const container = document.getElementById('bookmark-list');
+
+        try {
+            const response = await fetch(`/api/bookmarks/htmx/list?world_id=${this.activeWorldId}`);
+            if (response.ok) {
+                container.innerHTML = await response.text();
+            }
+        } catch (error) {
+            console.error('Failed to load bookmarks:', error);
+            container.innerHTML = '<p class="text-red-400">エラーがおきました</p>';
+        }
     },
 
     /**
@@ -164,10 +258,37 @@ const App = {
      * @param {string} type - タイプ（success, error, info）
      */
     showNotification(message, type = 'info') {
-        // TODO: 通知UIを実装
-        console.log(`[${type.toUpperCase()}] ${message}`);
+        // シンプルなアラート（将来的にはより良いUIに）
+        const colors = {
+            success: '✅',
+            error: '❌',
+            info: 'ℹ️'
+        };
+        console.log(`${colors[type] || 'ℹ️'} ${message}`);
+
+        // 簡易トースト通知
+        const toast = document.createElement('div');
+        toast.className = `fixed bottom-4 right-4 px-4 py-2 rounded-lg text-white z-50 ${type === 'success' ? 'bg-green-600' :
+                type === 'error' ? 'bg-red-600' : 'bg-blue-600'
+            }`;
+        toast.textContent = message;
+        document.body.appendChild(toast);
+
+        setTimeout(() => {
+            toast.remove();
+        }, 3000);
     }
 };
+
+// 座標コピー用のグローバル関数
+function copyCoords(x, y, z) {
+    const text = `X: ${x}, Y: ${y}, Z: ${z}`;
+    navigator.clipboard.writeText(text).then(() => {
+        App.showNotification('座標をコピーしました！', 'success');
+    }).catch(() => {
+        App.showNotification('コピーできませんでした', 'error');
+    });
+}
 
 // DOMContentLoaded時に初期化
 document.addEventListener('DOMContentLoaded', () => {
