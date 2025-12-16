@@ -3,7 +3,7 @@ BedrockMate 2025 - Seeds Router
 ワールド/シード値管理API
 """
 
-from fastapi import APIRouter, HTTPException, Request
+from fastapi import APIRouter, HTTPException, Request, Form
 from fastapi.responses import HTMLResponse
 from pydantic import BaseModel
 from typing import Optional, List
@@ -121,6 +121,26 @@ async def delete_world(world_id: int):
 
 # ==================== HTMX Endpoints ====================
 
+@router.post("/htmx/create", response_class=HTMLResponse)
+async def htmx_create_world(
+    name: str = Form(...),
+    seed: str = Form(...),
+    description: str = Form(None)
+):
+    """
+    htmx用：フォームデータからワールドを作成し、リストHTMLを返す
+    """
+    try:
+        world_id = db.create_world(name, seed, description)
+        if not world_id:
+            return '<p class="text-red-400">エラー: ワールドを作成できませんでした</p>'
+    except Exception as e:
+        return f'<p class="text-red-400">エラー: {str(e)}</p>'
+    
+    # 更新されたリストを返す
+    return await htmx_world_list(None)
+
+
 @router.get("/htmx/list", response_class=HTMLResponse)
 async def htmx_world_list(request: Request):
     """
@@ -167,3 +187,4 @@ async def htmx_world_list(request: Request):
         html = '<p class="text-gray-400 text-center py-8">ワールドがありません。追加してね！</p>'
     
     return html
+
